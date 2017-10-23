@@ -19,7 +19,7 @@ This repository is destined to hold code for my RNN experiments in Pytorch (whic
 * Surprise gate: the network predicts the next input from its hidden state & gives higher value to less predictable inputs
 * Figure out how to obtain/plot information theoretic results:
   * Mutual information between hidden state and input/output/next hidden state
-  * Does mutual information track with weight correlation/symmetry (between the input/output weight vectors for each unit)?
+  * Does mutual information track with weight correlation/symmetry (between the input/output/recurrent weight vectors for each unit)?
   * Track redundancies in the hidden units throughout training, where redundancies are defined as 2*H(o|h_i,h_j)-H(o|h_i)-H(o|h_j) or maybe I(h_i;h_j)
   * How does the mutual information between hidden unit activations relate to the Hessian? Can we calculate the Hessian in the case where n_hidden is small? Measure "how diagonal" the Hessian is and compare to: redundancies, long-term memory, training speed
 * Explore multiplicative terms and hypernets...
