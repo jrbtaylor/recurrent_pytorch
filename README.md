@@ -25,4 +25,4 @@ This repository is destined to hold code for my RNN experiments in Pytorch (whic
 * Explore multiplicative terms and hypernets...
   * Implement hyperRNN and multiplicative RNN
   * Plot gradient stats and redundancies throughout training, then try to figure out what happened
-  * 
+* Experiment with decoupled neural interfaces
