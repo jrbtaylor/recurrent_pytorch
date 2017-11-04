@@ -3,7 +3,7 @@ This repository is destined to hold code for my RNN experiments in Pytorch (whic
 
 ### To-do:
 - [X] Install Pytorch at home
-- [ ] Write input pipeline to perform basic augmentation and then shuffle pixels with a fixed random pattern
+- [X] Write input pipeline to shuffle pixels with a fixed random pattern
 - [ ] Write basic RNN
   * Make initial state learnable
   * Use layer norm for stability
