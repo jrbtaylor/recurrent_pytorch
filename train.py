@@ -2,13 +2,16 @@
 Written by Jason Taylor <jasonrbtaylor@gmail.com> 2017-2018
 """
 
+import numpy as np
+import progressbar
 import torch
-import torch.nn as nn
+from torch import nn
 from torch.autograd import Variable
+
 
 def fit_recurrent(train_loader,val_loader,model,
                   optimizer='adam',loss_fcn=nn.NLLLoss,
-                  learnrate=1e-3,cuda=True,max_epochs=200):
+                  learnrate=1e-3,cuda=True,patience=20,max_epochs=200):
 
     if cuda:
         model = model.cuda()
@@ -23,36 +26,67 @@ def fit_recurrent(train_loader,val_loader,model,
         def train_batch(x,y):
             hidden = model.init_hidden()
             optimizer.zero_grad()
-            for i in range(x.size()[0]):
+            correct = 0
+            for i in range(x.size()[1]):
                 output,hidden = model(x[i],hidden)
             loss = loss_fcn(output,y)
             loss.backward()
             optimizer.step()
-            return loss.data
+            pred = output.data.max(1,keepdim=True)[1]
+            correct += pred.eq(target.data.view_as(pred)).cpu().sum()
+            return loss.data,correct
 
-        for x,y in train_loader:
+        bar = progressbar.ProgressBar()
+        losses = []
+        correct = 0
+        for x,y in bar(train_loader):
             if cuda:
                 x,y = x.cuda(),y.cuda()
             x,y = Variable(x),Variable(y)
-            loss = train_batch(x,y)
-            print(loss)
+            loss,corr = train_batch(x,y)
+            losses.append(loss)
+            correct += corr
+        return np.mean(losses),float(correct)/len(train_loader.dataset)
 
     def val_epoch():
         def val_batch(x,y):
             hidden = model.init_hidden()
-            for i in range(x.size()[0]):
+            correct = 0
+            for i in range(x.size()[1]):
                 output,hidden = model(x[i],hidden)
             loss = loss_fcn(output,y)
-            return loss.data
+            pred = output.data.max(1, keepdim=True)[1]
+            correct += pred.eq(target.data.view_as(pred)).cpu().sum()
+            return loss.data,correct
 
-        for x,y in val_loader:
+        bar = progressbar.ProgressBar()
+        losses = []
+        correct = 0
+        for x,y in bar(val_loader):
             if cuda:
                 x,y = x.cuda(),y.cuda()
             x,y = Variable(x),Variable(y)
-            loss = val_batch(x,y)
-            print(loss)
+            loss,corr = val_batch(x,y)
+            losses.append(loss)
+            correct += corr
+        return np.mean(losses),float(correct)/len(train_loader.dataset)
 
-
+    train_losses = []
+    val_losses = []
+    best_val = np.inf
+    stall = 0
+    for epoch in range(max_epochs):
+        train_losses.append(np.mean(train_epoch()))
+        val_losses.append(np.mean(val_epoch()))
+        print('Epoch %i   -   Training loss = %8.4f   - Validation loss = %8.4f'
+              %(epoch,train_losses[-1],val_losses[-1]))
+        if val_losses[-1]<best_val:
+            best_val = val_losses[-1]
+            stall = 0
+        else:
+            stall += 1
+        if stall>=patience:
+            break
 
 
 
