@@ -9,7 +9,7 @@ dtype = torch.cuda.FloatTensor
 
 pixel_permutation = torch.randperm(28*28)
 
-def mnist_loaders(batch_size,sequential=True,permuted=True, n_workers=4):
+def mnist(batch_size,sequential=True,permuted=True, n_workers=4):
     if permuted:  # can't be permuted if not sequential
         assert sequential
 
