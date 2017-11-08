@@ -8,7 +8,7 @@ import data
 import model
 import train
 
-def run(batch_size,permuted,modeltype='rnn',n_hidden=16,layer_norm=True,
+def run(batch_size,permuted,modeltype='rnn',n_hidden=64,layer_norm=True,
         optimizer='adam',learnrate=1e-3,cuda=True):
     train_loader,val_loader = data.mnist(batch_size,sequential=True,
                                          permuted=permuted)
@@ -17,7 +17,8 @@ def run(batch_size,permuted,modeltype='rnn',n_hidden=16,layer_norm=True,
     else:
         raise ValueError
 
-    train.fit_recurrent(train_loader,val_loader,net,optimizer)
+    train.fit_recurrent(train_loader,val_loader,net,optimizer,
+                        cuda=cuda)
 
 
 if __name__=='__main__':
