@@ -9,8 +9,14 @@ from torch import nn
 from torch.autograd import Variable
 
 
+def _clearline():
+    CURSOR_UP_ONE = '\x1b[1A'
+    ERASE_LINE = '\x1b[2K'
+    print(CURSOR_UP_ONE+ERASE_LINE+CURSOR_UP_ONE)
+
+
 def fit_recurrent(train_loader,val_loader,model,
-                  optimizer='adam',loss_fcn=nn.NLLLoss,
+                  optimizer='adam',loss_fcn=nn.NLLLoss(),
                   learnrate=1e-3,cuda=True,patience=20,max_epochs=200):
 
     if cuda:
@@ -24,17 +30,19 @@ def fit_recurrent(train_loader,val_loader,model,
 
     def train_epoch():
         def train_batch(x,y):
-            hidden = model.init_hidden()
+            hidden = model.init_hidden(x.data.size()[0])
+            if cuda:
+                hidden = hidden.cuda()
             optimizer.zero_grad()
             correct = 0
             for i in range(x.size()[1]):
-                output,hidden = model(x[i],hidden)
+                output,hidden = model(x[:,i],hidden)
             loss = loss_fcn(output,y)
             loss.backward()
             optimizer.step()
             pred = output.data.max(1,keepdim=True)[1]
-            correct += pred.eq(target.data.view_as(pred)).cpu().sum()
-            return loss.data,correct
+            correct += pred.eq(y.data.view_as(pred)).cpu().sum()
+            return loss.data.cpu().numpy(),correct
 
         bar = progressbar.ProgressBar()
         losses = []
@@ -46,18 +54,21 @@ def fit_recurrent(train_loader,val_loader,model,
             loss,corr = train_batch(x,y)
             losses.append(loss)
             correct += corr
+        _clearline()
         return np.mean(losses),float(correct)/len(train_loader.dataset)
 
     def val_epoch():
         def val_batch(x,y):
-            hidden = model.init_hidden()
+            hidden = model.init_hidden(x.data.size()[0])
+            if cuda:
+                hidden = hidden.cuda()
             correct = 0
             for i in range(x.size()[1]):
-                output,hidden = model(x[i],hidden)
+                output,hidden = model(x[:,i],hidden)
             loss = loss_fcn(output,y)
-            pred = output.data.max(1, keepdim=True)[1]
-            correct += pred.eq(target.data.view_as(pred)).cpu().sum()
-            return loss.data,correct
+            pred = output.data.max(1,keepdim=True)[1]
+            correct += pred.eq(y.data.view_as(pred)).cpu().sum()
+            return loss.data.cpu().numpy(),correct
 
         bar = progressbar.ProgressBar()
         losses = []
@@ -69,17 +80,26 @@ def fit_recurrent(train_loader,val_loader,model,
             loss,corr = val_batch(x,y)
             losses.append(loss)
             correct += corr
+        _clearline()
         return np.mean(losses),float(correct)/len(train_loader.dataset)
 
     train_losses = []
+    train_accs = []
     val_losses = []
+    val_accs = []
     best_val = np.inf
     stall = 0
     for epoch in range(max_epochs):
-        train_losses.append(np.mean(train_epoch()))
-        val_losses.append(np.mean(val_epoch()))
-        print('Epoch %i   -   Training loss = %8.4f   - Validation loss = %8.4f'
-              %(epoch,train_losses[-1],val_losses[-1]))
+        l,a = train_epoch()
+        train_losses.append(l)
+        train_accs.append(a)
+        print('Epoch %i:    Training loss = %6.4f    accuracy = %6.4f'
+              %(epoch, train_losses[-1], train_accs[-1]))
+        l,a = val_epoch()
+        val_losses.append(l)
+        val_accs.append(a)
+        print('           Validation loss = %6.4f    accuracy = %6.4f'
+              %(val_losses[-1],val_accs[-1]))
         if val_losses[-1]<best_val:
             best_val = val_losses[-1]
             stall = 0
