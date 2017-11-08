@@ -60,5 +60,7 @@ class RNN(nn.Module):
         output = self.softmax(output)
         return output,hidden
 
-    def init_hidden(self):
-        return nn.Parameter(torch.zeros(1,self.n_hidden),requires_grad=True)
+    def init_hidden(self,batch_size=1):
+        return nn.Parameter(torch.zeros(1,self.n_hidden),
+                            requires_grad=True).repeat(batch_size,1)
+        # return torch.zeros(1,self.n_hidden)
