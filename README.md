@@ -21,6 +21,8 @@ This repository is destined to hold code for my RNN experiments in Pytorch (whic
 - [ ] Misc ideas to explore:
   - [ ] Are recurrent nets more or less susceptible to adversarial examples than convolutional nets?
     * Note: input is lower dimensionality, but recurrence may lead to exploitable instabilities (could go either way)
+  - [ ] Calculate aleatoric uncertainty
+      - [ ] Backprop uncertainty to pixels and highlight highly-confusing pixels in validation examples with highest uncertainty
   - [ ] Surprise gate: the network predicts the next input from its hidden state & gives higher value to less predictable inputs
   - [ ] Figure out how to obtain/plot information theoretic results:
     * Mutual information between hidden state and input/output/next hidden state
