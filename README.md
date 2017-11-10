@@ -7,7 +7,7 @@ This repository is destined to hold code for my RNN experiments in Pytorch (whic
 - [X] Write basic RNN
   - [X] Make initial state learnable
   - [X] Use layer norm for stability
-- [ ] Write GRU
+- [X] Write GRU
 - [ ] Baseline experiments with RNN & GRU
   - [ ] Write function for plotting training curves during training
   - [ ] Figure out how to save model checkpoints to enable reloading trained model
