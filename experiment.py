@@ -25,9 +25,10 @@ def run(batch_size,permuted,modeltype='gru',n_hidden=64,zoneout=0.25,
     assert isinstance(cuda,bool)
 
     # Name the experiment s.t. parameters are easily readable
-    exp_name = ('%s_perm%r_h%i_z%f_norm%r_%s'
+    exp_name = ('%s_perm%r_h%i_z%2f_norm%r_%s'
                 %(modeltype,permuted,n_hidden,zoneout,layer_norm,optimizer))
-    exp_path = os.path.join('~/experiments/recurrent_pytorch/',exp_name)
+    exp_path = os.path.join('/home/jason/experiments/recurrent_pytorch/',
+                            exp_name)
     if not os.path.isdir(exp_path):
         os.makedirs(exp_path)
 
@@ -62,7 +63,7 @@ if __name__=='__main__':
     parser.add_argument('--zoneout', type=float, default=0.25)
     parser.add_argument('--permuted', action='store_true')
     parser.add_argument('--batch_size', type=int, default=256)
-    parser.add_argument('--n_hidden', type=int, default=64)
+    parser.add_argument('--n_hidden', type=int, default=128)
     parser.add_argument('--layer_norm', action='store_true')
     parser.add_argument('--optimizer', choices=['adam','sgd','adamax'],
                         default='adam')
