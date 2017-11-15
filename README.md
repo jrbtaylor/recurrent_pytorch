@@ -9,9 +9,9 @@ This repository is destined to hold code for my RNN experiments in Pytorch (whic
   - [X] Use layer norm for stability
 - [X] Write GRU
 - [X] Add zoneout
-- [ ] Baseline experiments with RNN & GRU
+- [X] Baseline experiments with RNN & GRU
   - [X] Write function for plotting training curves during training
-  - [ ] Figure out how to save model checkpoints to enable reloading trained model
+  - [X] Figure out how to save model checkpoints to enable reloading trained model
 - [ ] Post-training analysis of saved model
   - [ ] Write function for visualizing the important pixels used for classification
   - [ ] Write function to generate gif to visualize test case:
