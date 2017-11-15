@@ -63,4 +63,28 @@ class RNN(nn.Module):
     def init_hidden(self,batch_size=1):
         return nn.Parameter(torch.zeros(1,self.n_hidden),
                             requires_grad=True).repeat(batch_size,1)
-        # return torch.zeros(1,self.n_hidden)
+
+
+class GRU(nn.Module):
+    def __init__(self,n_in,n_hidden,n_out,layer_norm=False):
+        super(GRU,self).__init__()
+        self.n_hidden = n_hidden
+        self.gate = nn.Sigmoid()
+        self.i2g = nn.Linear(n_in+n_hidden,2*n_hidden,bias=True)
+        self.activation = nn.Tanh()
+        self.x2h = nn.Linear(n_in,n_hidden,bias=True)
+        self.h2h = nn.Linear(n_hidden,n_hidden,bias=False)
+        self.h2o = nn.Linear(n_hidden,n_out,bias=True)
+        self.softmax = nn.LogSoftmax()
+
+    def forward(self,input,hidden):
+        combined = torch.cat((input,hidden),1)
+        gates = self.gate(self.i2g(combined))
+        z,r = torch.split(gates,split_size=self.n_hidden,dim=1)
+        h = z*hidden+(1-z)*self.activation(self.x2h(input)+self.h2h(r*hidden))
+        output = self.softmax(self.h2o(h))
+        return output,h
+
+    def init_hidden(self,batch_size=1):
+        return nn.Parameter(torch.zeros(1,self.n_hidden),
+                            requires_grad=True).repeat(batch_size,1)
