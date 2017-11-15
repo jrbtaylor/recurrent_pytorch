@@ -2,12 +2,17 @@
 Written by Jason Taylor <jasonrbtaylor@gmail.com> 2017-2018
 """
 
+import json
+import os
+import time
+
 import numpy as np
 import progressbar
 import torch
 from torch import nn
 from torch.autograd import Variable
 
+from plot import plot_stats
 
 def _clearline():
     CURSOR_UP_ONE = '\x1b[1A'
@@ -15,28 +20,40 @@ def _clearline():
     print(CURSOR_UP_ONE+ERASE_LINE+CURSOR_UP_ONE)
 
 
-def fit_recurrent(train_loader,val_loader,model,
-                  optimizer='adam',loss_fcn=nn.NLLLoss(),
+def fit_recurrent(train_loader,val_loader,model,exp_path,
+                  zoneout=0,optimizer='adam',loss_fcn=nn.NLLLoss(),
                   learnrate=1e-3,cuda=True,patience=20,max_epochs=200):
-
     if cuda:
         model = model.cuda()
 
+    if not os.path.isdir(exp_path):
+        os.makedirs(exp_path)
+    statsfile = os.path.join(exp_path,'stats.json')
+
     optimizer = {'adam':torch.optim.Adam(model.parameters(),lr=learnrate),
-                 'sgd':torch.optim.SGD(model.parameters(),lr=learnrate,
-                                       momentum=0.9),
+                 'sgd':torch.optim.SGD(
+                     model.parameters(),lr=learnrate,momentum=0.9),
                  'adamax':torch.optim.Adamax(model.parameters(),lr=learnrate)
                  }[optimizer.lower()]
+
+    # TO-DO: extend this to track other things (gradient magnitudes, etc.)
+    stats = {'loss':{'train':[],'val':[]},
+             'acc':{'train':[],'val':[]}}
 
     def train_epoch():
         def train_batch(x,y):
             hidden = model.init_hidden(x.data.size()[0])
             if cuda:
                 hidden = hidden.cuda()
+            p_zoneout = zoneout*torch.ones(hidden.data.size())
             optimizer.zero_grad()
             correct = 0
             for i in range(x.size()[1]):
-                output,hidden = model(x[:,i],hidden)
+                output,h_new = model(x[:,i],hidden)
+                zoneout_mask = Variable(torch.bernoulli(p_zoneout))
+                if cuda:
+                    zoneout_mask = zoneout_mask.cuda()
+                hidden = zoneout_mask*hidden+(1-zoneout_mask)*h_new
             loss = loss_fcn(output,y)
             loss.backward()
             optimizer.step()
@@ -55,7 +72,7 @@ def fit_recurrent(train_loader,val_loader,model,
             losses.append(loss)
             correct += corr
         _clearline()
-        return np.mean(losses),float(correct)/len(train_loader.dataset)
+        return float(np.mean(losses)),float(correct)/len(train_loader.dataset)
 
     def val_epoch():
         def val_batch(x,y):
@@ -81,28 +98,39 @@ def fit_recurrent(train_loader,val_loader,model,
             losses.append(loss)
             correct += corr
         _clearline()
-        return np.mean(losses),float(correct)/len(train_loader.dataset)
+        return float(np.mean(losses)),float(correct)/len(val_loader.dataset)
 
-    train_losses = []
-    train_accs = []
-    val_losses = []
-    val_accs = []
     best_val = np.inf
     stall = 0
     for epoch in range(max_epochs):
+        # Training
+        t0 = time.time()
         l,a = train_epoch()
-        train_losses.append(l)
-        train_accs.append(a)
-        print('Epoch %i:    Training loss = %6.4f    accuracy = %6.4f'
-              %(epoch, train_losses[-1], train_accs[-1]))
+        time_per_example = (time.time()-t0)/len(train_loader.dataset)
+        stats['loss']['train'].append(l)
+        stats['acc']['train'].append(a)
+        print(('Epoch %3i:    Training loss = %6.4f    accuracy = %6.4f'
+              +'    %4.2f msec/example')%(epoch,l,a,time_per_example*1000))
+
+        # Validation
+        t0 = time.time()
         l,a = val_epoch()
-        val_losses.append(l)
-        val_accs.append(a)
-        print('           Validation loss = %6.4f    accuracy = %6.4f'
-              %(val_losses[-1],val_accs[-1]))
-        if val_losses[-1]<best_val:
-            best_val = val_losses[-1]
+        time_per_example = (time.time()-t0)/len(val_loader.dataset)
+        stats['loss']['val'].append(l)
+        stats['acc']['val'].append(a)
+        print(('            Validation loss = %6.4f    accuracy = %6.4f'
+              +'    %4.2f msec/example')%(l,a,time_per_example*1000))
+
+        # Save results and update plots
+        with open(statsfile,'w') as sf:
+            json.dump(stats,sf)
+        plot_stats(stats,exp_path)
+
+        # Early stopping
+        if l<best_val:
+            best_val = l
             stall = 0
+            torch.save(model,os.path.join(exp_path,'checkpoint'))
         else:
             stall += 1
         if stall>=patience:
