@@ -62,8 +62,8 @@ if __name__=='__main__':
                         default='gru')
     parser.add_argument('--zoneout', type=float, default=0.25)
     parser.add_argument('--permuted', action='store_true')
-    parser.add_argument('--batch_size', type=int, default=256)
-    parser.add_argument('--n_hidden', type=int, default=128)
+    parser.add_argument('--batch_size', type=int, default=25)
+    parser.add_argument('--n_hidden', type=int, default=256)
     parser.add_argument('--layer_norm', action='store_true')
     parser.add_argument('--optimizer', choices=['adam','sgd','adamax'],
                         default='adam')
