@@ -42,17 +42,19 @@ def fit_recurrent(train_loader,val_loader,model,exp_path,
 
     def train_epoch():
         def train_batch(x,y):
+            model.dropout.p = 0.5
             hidden = model.init_hidden(x.data.size()[0])
+            p_zoneout = zoneout*torch.ones(hidden.data.size())
             if cuda:
                 hidden = hidden.cuda()
-            p_zoneout = zoneout*torch.ones(hidden.data.size())
+                p_zoneout = p_zoneout.cuda()
             optimizer.zero_grad()
             correct = 0
             for i in range(x.size()[1]):
                 output,h_new = model(x[:,i],hidden)
                 zoneout_mask = Variable(torch.bernoulli(p_zoneout))
-                if cuda:
-                    zoneout_mask = zoneout_mask.cuda()
+                # if cuda:
+                #     zoneout_mask = zoneout_mask.cuda()
                 hidden = zoneout_mask*hidden+(1-zoneout_mask)*h_new
             loss = loss_fcn(output,y)
             loss.backward()
@@ -76,12 +78,17 @@ def fit_recurrent(train_loader,val_loader,model,exp_path,
 
     def val_epoch():
         def val_batch(x,y):
+            model.dropout.p = 0
             hidden = model.init_hidden(x.data.size()[0])
+            p_zoneout = zoneout*torch.ones(hidden.data.size())
             if cuda:
                 hidden = hidden.cuda()
+                p_zoneout = p_zoneout.cuda()
             correct = 0
             for i in range(x.size()[1]):
-                output,hidden = model(x[:,i],hidden)
+                output,h_new = model(x[:,i],hidden)
+                # take expectation of zoneout
+                hidden = zoneout*hidden+(1-zoneout)*h_new
             loss = loss_fcn(output,y)
             pred = output.data.max(1,keepdim=True)[1]
             correct += pred.eq(y.data.view_as(pred)).cpu().sum()
