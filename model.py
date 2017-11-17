@@ -41,6 +41,7 @@ class RNN(nn.Module):
         super(RNN,self).__init__()
         self.n_hidden = n_hidden
         self.i2h = nn.Linear(n_in+n_hidden,n_hidden)
+        self.dropout = nn.Dropout()
         self.h2o = nn.Linear(n_hidden,n_out)
         self.softmax = nn.LogSoftmax()
         self.layer_norm = layer_norm
@@ -56,7 +57,7 @@ class RNN(nn.Module):
         hidden = self.activation(hidden)
         if self.layer_norm:
             hidden = self.normh(hidden)
-        output = self.h2o(hidden)
+        output = self.h2o(self.dropout(hidden))
         output = self.softmax(output)
         return output,hidden
 
@@ -74,6 +75,7 @@ class GRU(nn.Module):
         self.activation = nn.Tanh()
         self.x2h = nn.Linear(n_in,n_hidden,bias=True)
         self.h2h = nn.Linear(n_hidden,n_hidden,bias=False)
+        self.dropout = nn.Dropout()
         self.h2o = nn.Linear(n_hidden,n_out,bias=True)
         self.softmax = nn.LogSoftmax()
 
@@ -82,7 +84,7 @@ class GRU(nn.Module):
         gates = self.gate(self.i2g(combined))
         z,r = torch.split(gates,split_size=self.n_hidden,dim=1)
         h = z*hidden+(1-z)*self.activation(self.x2h(input)+self.h2h(r*hidden))
-        output = self.softmax(self.h2o(h))
+        output = self.softmax(self.h2o(self.dropout(h)))
         return output,h
 
     def init_hidden(self,batch_size=1):
