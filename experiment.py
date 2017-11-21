@@ -9,8 +9,11 @@ import os
 import data
 import model
 import train
+from post import visualizations
 
 MODELS_IMPLEMENTED = ['rnn','gru']
+
+# TODO: save permutation pattern to json so it can be fed into data.mnist
 
 def run(batch_size,permuted,modeltype='gru',n_hidden=64,zoneout=0.25,
         layer_norm=True,optimizer='adam',learnrate=1e-3,cuda=True):
@@ -53,6 +56,16 @@ def run(batch_size,permuted,modeltype='gru',n_hidden=64,zoneout=0.25,
     train.fit_recurrent(train_loader,val_loader,net,exp_path,
                         zoneout,optimizer,cuda=cuda)
 
+    # Post-trainign visualization
+    visualizations(exp_path, val_loader)
+
+
+def post(modeldir):
+    with open(os.path.join(modeldir,'params.json'),'r') as jsf:
+        params = json.load(jsf)
+    _,val_loader = data.mnist(1,sequential=True,permuted=params['permuted'])
+    visualizations(modeldir,val_loader)
+
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(
@@ -68,8 +81,7 @@ if __name__=='__main__':
     parser.add_argument('--optimizer', choices=['adam','sgd','adamax'],
                         default='adam')
     parser.add_argument('--learnrate', type=float, default=0.001)
-    parser.add_argument('--cuda', action='store_true')
 
     args = parser.parse_args()
     run(args.batch_size,args.permuted,args.modeltype,args.n_hidden,args.zoneout,
-        args.layer_norm,args.optimizer,args.learnrate,args.cuda)
+        args.layer_norm,args.optimizer,args.learnrate)

@@ -13,7 +13,9 @@ This repository is destined to hold code for my RNN experiments in Pytorch (whic
   - [X] Write function for plotting training curves during training
   - [X] Figure out how to save model checkpoints to enable reloading trained model
 - [ ] Post-training analysis of saved model
-  - [ ] Write function for visualizing the important pixels used for classification
+  - [X] Write function for visualizing the important pixels used for classification
+  - [ ] Write function to save collage of images w/ arbitrary printout below
+     - [ ] Make collages of images with lowest and highest loss
   - [ ] Write function to generate gif to visualize test case:
     * On the left: the image appears one pixel at a time
     * In the center: the hidden activations (reshaped to be a square-ish image)
