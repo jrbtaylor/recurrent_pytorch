@@ -2,12 +2,15 @@
 Written by Jason Taylor <jasonrbtaylor@gmail.com> 2017-2018
 """
 
+import numpy as np
 import torch
 from torchvision import datasets, transforms
 
-dtype = torch.cuda.FloatTensor
 
-pixel_permutation = torch.randperm(28*28)
+def pixel_permutation():
+    np.random.seed(0)
+    return torch.from_numpy(np.random.permutation(range(28*28)))
+
 
 def mnist(batch_size,sequential=True,permuted=True,n_workers=4):
     if permuted:  # can't be permuted if not sequential
@@ -22,7 +25,7 @@ def mnist(batch_size,sequential=True,permuted=True,n_workers=4):
     else:
         transform = transforms.Compose([
             transforms.ToTensor(),transforms.Lambda(
-                lambda x: x.view(-1, 1)[pixel_permutation])])
+                lambda x: x.view(-1, 1)[pixel_permutation()])])
     train_loader = torch.utils.data.DataLoader(
         datasets.MNIST('/home/jason/data/mnist',
                        train=True, download=True, transform=transform),

@@ -45,6 +45,7 @@ class RNN(nn.Module):
         self.h2o = nn.Linear(n_hidden,n_out)
         self.softmax = nn.LogSoftmax()
         self.layer_norm = layer_norm
+        self.aux_loss = 0
         if layer_norm:
             self.normh = LayerNorm(n_hidden)
             self.activation = nn.ReLU()
@@ -78,6 +79,7 @@ class GRU(nn.Module):
         self.dropout = nn.Dropout()
         self.h2o = nn.Linear(n_hidden,n_out,bias=True)
         self.softmax = nn.LogSoftmax()
+        self.aux_loss = 0
 
     def forward(self,input,hidden):
         combined = torch.cat((input,hidden),1)
@@ -90,3 +92,35 @@ class GRU(nn.Module):
     def init_hidden(self,batch_size=1):
         return nn.Parameter(torch.zeros(1,self.n_hidden),
                             requires_grad=True).repeat(batch_size,1)
+
+
+class SurpriseGRU(GRU):
+    def __init__(self,n_in,n_hidden,n_out,layer_norm=False):
+        super(SurpriseGRU,self).__init__(n_in,n_hidden,n_out,layer_norm)
+        print('NOTE: inputs must be in range [0,1] for surprise gate')
+
+        # add surprise gate to GRU: predict next input (quantized & softmax)
+        self.h2f = nn.Linear(n_hidden,n_in)
+        self.aux_loss_fcn = nn.L1Loss()
+
+    def forward(self, input, hidden):
+        # predict current input from last hidden
+        f = self.h2f(hidden)
+        self.aux_loss = self.aux_loss_fcn(f,input)
+
+        # take loss as probability of accepting input
+        surprise = torch.bernoulli(1-self.aux_loss)
+        if (surprise.data==1).all():
+            # normal forward operation
+            combined = torch.cat((input, hidden), 1)
+            gates = self.gate(self.i2g(combined))
+            z, r = torch.split(gates, split_size=self.n_hidden, dim=1)
+            h = z*hidden+(1-z)*self.activation(self.x2h(input)+self.h2h(r*hidden))
+        else:
+            h = hidden
+        output = self.softmax(self.h2o(self.dropout(h)))
+        return output, h
+
+    def init_hidden(self, batch_size=1):
+        return nn.Parameter(torch.zeros(1, self.n_hidden),
+                            requires_grad=True).repeat(batch_size, 1)
